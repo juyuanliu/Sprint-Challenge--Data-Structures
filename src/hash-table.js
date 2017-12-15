@@ -1,24 +1,30 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable class-methods-use-this */
-const { LimitedArray, getIndexBelowMax } = require('./hash-table-helpers');
+const { LimitedArray, getIndexBelowMax, LinkedList } = require('./hash-table-helpers');
 
 class HashTable {
   constructor(limit = 8) {
     this.limit = limit;
     this.storage = new LimitedArray(this.limit);
-    // Do not modify anything inside of the constructor
   }
 
   resize() {
     this.limit *= 2;
     const oldStorage = this.storage;
     this.storage = new LimitedArray(this.limit);
-    oldStorage.each((bucket) => {
-      if (!bucket) return;
-      bucket.forEach((pair) => {
-        this.insert(pair[0], pair[1]);
-      });
-    });
+    const keyVals = [];
+    for (let i = 0; i < oldStorage.length; i++) {
+      if (oldStorage.storage[i] !== undefined) {
+        let currentNode = oldStorage.storage[i].head;
+        while (currentNode !== null) {
+          keyVals.push([currentNode.value[0], currentNode.value[1]]);
+          currentNode = currentNode.next;
+        }
+      }
+    }
+    for (let j = 0; j < keyVals.length; j++) {
+      this.insert(keyVals[j][0], keyVals[j][1]);
+    }
   }
 
   capacityIsFull() {
@@ -29,43 +35,76 @@ class HashTable {
     return fullCells / this.limit >= 0.75;
   }
 
-  // Adds the given key, value pair to the hash table
-  // Fetch the bucket associated with the given key using the getIndexBelowMax function
-  // If no bucket has been created for that index, instantiate a new bucket and add the key, value pair to that new bucket
-  // If the key already exists in the bucket, the newer value should overwrite the older value associated with that key
   insert(key, value) {
     if (this.capacityIsFull()) this.resize();
     const index = getIndexBelowMax(key.toString(), this.limit);
-    let bucket = this.storage.get(index) || [];
-
-    bucket = bucket.filter(item => item[0] !== key);
-    bucket.push([key, value]);
-    this.storage.set(index, bucket);
-  }
-  // Removes the key, value pair from the hash table
-  // Fetch the bucket associated with the given key using the getIndexBelowMax function
-  // Remove the key, value pair from the bucket
-  remove(key) {
-    const index = getIndexBelowMax(key.toString(), this.limit);
-    let bucket = this.storage.get(index);
-
-    if (bucket) {
-      bucket = bucket.filter(item => item[0] !== key);
+    if (!this.storage.get(index)) {
+      const bucket = new LinkedList();
+      bucket.addToTail([key, value]);
       this.storage.set(index, bucket);
     }
+    if (this.storage.get(index)) {
+      const bucket = this.storage.get(index);
+      let keyFound = false;
+      let currentNode = bucket.head;
+      while ((currentNode.next !== null) && (!keyFound)) {
+        if (currentNode.value[0] === key) {
+          currentNode.value[1] = value;
+          keyFound = true;
+        }
+        currentNode = currentNode.next;
+      }
+      if (!keyFound) {
+        bucket.addToTail([key, value]);
+      }
+    }
   }
-  // Fetches the value associated with the given key from the hash table
-  // Fetch the bucket associated with the given key using the getIndexBelowMax function
-  // Find the key, value pair inside the bucket and return the value
+
+  remove(key) {
+    const index = getIndexBelowMax(key.toString(), this.limit);
+    const bucket = this.storage.get(index);
+    if (bucket) {
+      let found = false;
+      if (bucket.head.value[0] === key) {
+        bucket.removeHead();
+        found = true;
+      }
+      let previousNode = bucket.head;
+      let currentNode = previousNode.next;
+      while ((currentNode !== null) && (!found)) {
+        if (currentNode.value[0] === key) {
+          previousNode.next = currentNode.next;
+          currentNode.next = null;
+          found = true;
+          if (bucket.tail === currentNode) {
+            bucket.tail = previousNode;
+          }
+        }
+        if (!found) {
+          previousNode = currentNode;
+          currentNode = currentNode.next;
+        }
+      }
+    }
+  }
+
   retrieve(key) {
     const index = getIndexBelowMax(key.toString(), this.limit);
     const bucket = this.storage.get(index);
-    let retrieved;
     if (bucket) {
-      retrieved = bucket.filter(item => item[0] === key)[0];
+      let scannedNode = bucket.head;
+      let found = false;
+      while (scannedNode.next !== null) {
+        if (scannedNode.value[0] === key) {
+          found = true;
+          return scannedNode.value[1];
+        }
+        scannedNode = scannedNode.next;
+      }
+      if (!found) {
+        return undefined;
+      }
     }
-
-    return retrieved ? retrieved[1] : undefined;
   }
 }
 

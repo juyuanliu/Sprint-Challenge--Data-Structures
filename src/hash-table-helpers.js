@@ -34,7 +34,52 @@ class LimitedArray {
     this.storage[index] = value;
   }
 }
-/* eslint-disable no-bitwise, operator-assignment */
+
+class LinkedList {
+  constructor() {
+    this.head = null;
+    this.tail = null;
+  }
+
+  addToTail(value) {
+    const newNode = {
+      next: null,
+      value,
+    };
+
+    if (this.head === null) {
+      this.head = newNode;
+      this.tail = newNode;
+    } else {
+      this.tail.next = newNode;
+      this.tail = newNode;
+    }
+  }
+  removeHead() {
+    if (this.head === null) return;
+    if (this.head.next === null) {
+      const head = this.head;
+      this.head = null;
+      this.tail = null;
+      return head.value;
+    }
+    const head = this.head;
+    this.head = this.head.next;
+    return head.value;
+  }
+
+  contains(value) {
+    if (this.head === null) return false;
+    const searchLinkedList = (node) => {
+      if (node.value === value) return true;
+      if (node.next === null) return false;
+      return searchLinkedList(node.next);
+    };
+    return searchLinkedList(this.head);
+  }
+}
+
+      /* eslint-disable no-bitwise, operator-assignment */
 // This is hash function you'll be using to hash keys
 // There's some bit-shifting magic going on here, but essentially, all it is doing is performing the modulo operator
 // on the given `str` arg (the key) modded by the limit of the limited array
@@ -52,4 +97,5 @@ const getIndexBelowMax = (str, max) => {
 module.exports = {
   LimitedArray,
   getIndexBelowMax,
+  LinkedList,
 };
